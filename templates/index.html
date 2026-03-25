@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vektör Arama Sistemi | Model Analizi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        /* PEMBE VEKTÖR/SİNİR AĞI TEMASI (DATA SCIENCE PINK) */
+        body {
+            /* Genel yazı boyutunu biraz küçülttük */
+            font-size: 0.95rem;
+            
+            background: 
+                url('data:image/svg+xml;utf8,<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="30" r="2.5" fill="rgba(255,255,255,0.6)"/><circle cx="90" cy="40" r="2.5" fill="rgba(255,255,255,0.6)"/><circle cx="50" cy="90" r="2.5" fill="rgba(255,255,255,0.6)"/><circle cx="100" cy="100" r="2.5" fill="rgba(255,255,255,0.6)"/><line x1="30" y1="30" x2="90" y2="40" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="90" y1="40" x2="50" y2="90" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="50" y1="90" x2="30" y2="30" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="90" y1="40" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/><line x1="50" y1="90" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/></svg>'),
+                linear-gradient(135deg, #ffdde1 0%, #f48fb1 100%);
+            background-attachment: fixed;
+            padding-top: 40px;
+            padding-bottom: 40px;
+        }
+
+        .card {
+            background-color: rgba(255, 255, 255, 0.90) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6) !important;
+            border-radius: 15px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+        }
+
+        /* Başlık Rengi ve Boyutu */
+        .ana-baslik { color: #c2185b; font-weight: bold; font-size: 1.6rem; } 
+        .alt-baslik { color: #5a6268; font-size: 0.9rem; }
+
+        .result-container { 
+            display: none; 
+            margin-top: 25px; 
+            animation: fadeIn 0.5s;
+        }
+
+        /* JSON Kod Ekranı (Daha küçük ve zarif yazı tipi) */
+        pre { 
+            background-color: #2b2b36; 
+            color: #f8bbd0; 
+            padding: 12px; 
+            border-radius: 10px; 
+            border-left: 5px solid #d81b60;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+        }
+
+        .badge-score { font-size: 1rem; padding: 6px 10px; border-radius: 8px; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            
+            <div class="text-center mb-4">
+                <h2 class="ana-baslik"><i class="bi bi-bezier2"></i> Embedding Modeli Performans Analizi</h2>
+                <p class="alt-baslik">6 farklı modeli anlık olarak kıyaslayın ve vektör eşleşmelerini görüntüleyin.</p>
+            </div>
+            
+            <div class="alert alert-danger rounded-3" id="errorArea" style="display: none; font-size: 0.9rem;" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <div class="card p-4 border-0">
+                <div class="mb-3">
+                    <label for="modelSelect" class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">Kullanılacak Embedding Modeli:</label>
+                    <select class="form-select rounded-3" id="modelSelect">
+                        <option value="intfloat/multilingual-e5-large">1. intfloat/multilingual-e5-large (Referans)</option>
+                        <option value="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">2. paraphrase-multilingual-MiniLM-L12-v2</option>
+                        <option value="BAAI/bge-m3">3. BAAI/bge-m3</option>
+                        <option value="emrecan/bert-base-turkish-cased-mean-nli-stsb-tr">4. bert-base-turkish-cased (Emrecan)</option>
+                        <option value="dbmdz/bert-base-turkish-cased">5. bert-base-turkish-cased (DBMDZ)</option>
+                        <option value="gemini_mock">6. Gemini Embedding (Cloud - Mock)</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="queryInput" class="form-label fw-bold text-secondary" style="font-size: 0.9rem;">Test Sorunuz:</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 rounded-start-3"><i class="bi bi-code-slash" style="color: #d81b60;"></i></span>
+                        <input type="text" class="form-control border-start-0 rounded-end-3" id="queryInput" placeholder="Örn: Geçen yılki toplam cirom nedir?">
+                    </div>
+                </div>
+
+                <button class="btn text-white w-100 rounded-3 shadow-sm" style="background-color: #d81b60; border: none; font-weight: 500;" id="searchBtn" onclick="aramaYap()">
+                    <span id="spinner" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
+                    <span id="btnText">Vektörlerde Ara</span>
+                </button>
+            </div>
+
+            <div class="card p-4 result-container border-0" id="resultArea">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <h5 class="m-0 fw-bold" style="color: #d81b60;"><i class="bi bi-check2-circle me-2"></i>Eşleşen Sonuç</h5>
+                    <span class="badge badge-score shadow-sm" id="scoreBadge" style="background-color: #d81b60;">%0 Benzerlik</span>
+                </div>
+                
+                <div class="mb-3">
+                    <p class="text-muted mb-1 fw-bold" style="font-size: 0.85rem;">Veritabanındaki En Yakın Soru:</p>
+                    <p id="matchedQuestion" class="fw-semibold p-2 rounded mb-0" style="background-color: #fce4ec; color: #c2185b; border: 1px solid #f8bbd0;"></p>
+                </div>
+                
+                <p class="fw-bold text-secondary mb-2" style="font-size: 0.85rem;"><i class="bi bi-braces me-1"></i>Orijinal JSON Verisi:</p>
+                <pre class="mb-0"><code id="jsonDetails"></code></pre>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('queryInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            aramaYap();
+        }
+    });
+
+    async function aramaYap() {
+        const queryInput = document.getElementById('queryInput');
+        const query = queryInput.value.trim();
+        const model = document.getElementById('modelSelect').value;
+        const resultArea = document.getElementById('resultArea');
+        const errorArea = document.getElementById('errorArea');
+        const errorText = document.getElementById('errorText');
+        
+        const searchBtn = document.getElementById('searchBtn');
+        const btnText = document.getElementById('btnText');
+        const spinner = document.getElementById('spinner');
+        
+        errorArea.style.display = 'none';
+        resultArea.style.display = 'none';
+
+        if (!query) {
+            errorText.innerText = "Lütfen sorgulamak için bir soru giriniz.";
+            errorArea.style.display = 'block';
+            queryInput.focus();
+            return;
+        }
+
+        searchBtn.disabled = true;
+        btnText.innerText = "Modeller Taranıyor...";
+        spinner.style.display = "inline-block";
+
+        try {
+            const response = await fetch(`/api/search?query=${encodeURIComponent(query)}&model_name=${encodeURIComponent(model)}`);
+            const data = await response.json();
+
+            if (data.status === "success") {
+                document.getElementById('matchedQuestion').innerText = data.data.question;
+                
+                const scoreBadge = document.getElementById('scoreBadge');
+                const score = parseFloat(data.data.similarity_score);
+                scoreBadge.innerText = `%${score} Benzerlik`;
+                
+                if (score >= 80) {
+                    scoreBadge.style.backgroundColor = "#20c997"; 
+                } else if (score >= 50) {
+                    scoreBadge.style.backgroundColor = "#ffc107"; 
+                    scoreBadge.style.color = "#000";
+                } else {
+                    scoreBadge.style.backgroundColor = "#dc3545"; 
+                }
+
+                document.getElementById('jsonDetails').innerText = JSON.stringify(data.data.full_json, null, 4);
+                resultArea.style.display = "block";
+            } else {
+                errorText.innerText = "İşlem Başarısız: " + data.message;
+                errorArea.style.display = 'block';
+            }
+        } catch (error) {
+            errorText.innerText = "Sunucuya bağlanılamadı. Lütfen FastAPI (main.py) sunucusunun çalıştığından emin olun.";
+            errorArea.style.display = 'block';
+        } finally {
+            searchBtn.disabled = false;
+            btnText.innerText = "Vektörlerde Ara";
+            spinner.style.display = "none";
+        }
+    }
+</script>
+</body>
+</html>

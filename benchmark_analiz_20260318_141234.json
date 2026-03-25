@@ -1,0 +1,42 @@
+[
+    {
+        "model": "intfloat/multilingual-e5-large",
+        "ram_mb": 471.28,
+        "latency_ms": 26.18,
+        "success_rate": 97.2,
+        "cpu_percent": 0.0,
+        "test_date": "20260318_141234"
+    },
+    {
+        "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+        "ram_mb": 1200.52,
+        "latency_ms": 14.19,
+        "success_rate": 78.2,
+        "cpu_percent": 9.4,
+        "test_date": "20260318_141234"
+    },
+    {
+        "model": "BAAI/bge-m3",
+        "ram_mb": 950.61,
+        "latency_ms": 26.04,
+        "success_rate": 95.2,
+        "cpu_percent": 0.0,
+        "test_date": "20260318_141234"
+    },
+    {
+        "model": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
+        "ram_mb": 994.41,
+        "latency_ms": 20.96,
+        "success_rate": 74.0,
+        "cpu_percent": 0.0,
+        "test_date": "20260318_141234"
+    },
+    {
+        "model": "dbmdz/bert-base-turkish-cased",
+        "ram_mb": 994.7,
+        "latency_ms": 20.73,
+        "success_rate": 73.2,
+        "cpu_percent": 10.1,
+        "test_date": "20260318_141234"
+    }
+]
